@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORION OS · HUD Réacteur Arc</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond: #04070e;
+    --cyan: #38bdf8;
+    --ambre: #f59e0b;
+    --vert: #10b981;
+    --violet: #818cf8;
+    --texte-faible: #475569;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--fond);
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .glow-bg {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%);
+    pointer-events: none;
+  }
+  /* En-tête télémétrie */
+  .top-bar {
+    position: fixed;
+    top: 24px;
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--texte-faible);
+    text-transform: uppercase;
+  }
+  .badge { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  /* Réacteur Arc SVG */
+  #arc-container {
+    position: relative;
+    width: min(65vmin, 440px);
+    height: min(65vmin, 440px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .core-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.1);
+  }
+  .ring-1 { width: 100%; height: 100%; animation: spin 20s linear infinite; border-style: dashed; }
+  .ring-2 { width: 75%; height: 75%; animation: spin-rev 12s linear infinite; border-color: rgba(56, 189, 248, 0.4); }
+  .ring-3 { width: 50%; height: 50%; border: 2px solid var(--cyan); box-shadow: 0 0 20px var(--cyan); transition: all 0.3s ease; }
+  
+  .core-pulse {
+    width: 25%;
+    height: 25%;
+    background: radial-gradient(circle, #fff 0%, var(--cyan) 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 30px var(--cyan);
+    transition: transform 0.1s ease;
+  }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  @keyframes spin-rev { 100% { transform: rotate(-360deg); } }
+  
+  /* État */
+  #label-etat {
+    margin-top: 24px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    text-shadow: 0 0 12px var(--cyan);
+    text-transform: uppercase;
+  }
+  
+  /* Transcription */
+  #transcription-box {
+    position: fixed;
+    bottom: 30px;
+    width: min(720px, 88vw);
+    max-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 10px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%);
+  }
+  .msg-ligne {
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 6px 14px;
+    border-radius: 6px;
+    animation: fadeIn 0.3s ease;
+  }
+  .msg-vous { color: var(--cyan); background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--cyan); }
+  .msg-orion { color: #f8fafc; background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--ambre); }
+  .msg-outil { color: var(--vert); font-size: 11px; background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--vert); }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="glow-bg"></div>
+
+<div class="top-bar">
+    <div>ORION // M2 NEURAL ENGINE</div>
+    <div class="badge" id="hud-modele">CLAUDE 3.5 + WHISPER</div>
+</div>
+
+<div id="arc-container">
+    <div class="core-ring ring-1"></div>
+    <div class="core-ring ring-2"></div>
+    <div class="core-ring ring-3" id="core-ring-3"></div>
+    <div class="core-pulse" id="core-pulse"></div>
+</div>
+
+<div id="label-etat">VEILLE</div>
+
+<div id="transcription-box"></div>
+
+<script>
+    const evtSource = new EventSource("/flux");
+    const labelEtat = document.getElementById("label-etat");
+    const corePulse = document.getElementById("core-pulse");
+    const ring3 = document.getElementById("core-ring-3");
+    const transBox = document.getElementById("transcription-box");
+
+    evtSource.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.t === "etat") {
+            labelEtat.innerText = data.v.toUpperCase();
+            if (data.v === "ecoute") {
+                labelEtat.style.color = "var(--cyan)";
+                ring3.style.borderColor = "var(--cyan)";
+            } else if (data.v === "reflexion") {
+                labelEtat.style.color = "var(--violet)";
+                ring3.style.borderColor = "var(--violet)";
+            } else if (data.v === "parole") {
+                labelEtat.style.color = "var(--ambre)";
+                ring3.style.borderColor = "var(--ambre)";
+            } else {
+                labelEtat.style.color = "var(--texte-faible)";
+                ring3.style.borderColor = "rgba(56, 189, 248, 0.2)";
+            }
+        }
+        else if (data.t === "niveau") {
+            const scale = 1 + (data.v * 1.8);
+            corePulse.style.transform = `scale(${scale})`;
+        }
+        else if (data.t === "vous" || data.t === "orion" || data.t === "outil") {
+            const div = document.createElement("div");
+            div.className = `msg-ligne msg-${data.t}`;
+            if (data.t === "vous") div.innerText = `VOUS > ${data.v}`;
+            else if (data.t === "orion") div.innerText = `ORION > ${data.v}`;
+            else if (data.t === "outil") div.innerText = `⚙️ OUTIL [${data.nom}] ${data.desc || ""}`;
+            
+            transBox.appendChild(div);
+            if (transBox.children.length > 5) transBox.removeChild(transBox.children[0]);
+        }
+    };
+</script>
+</body>
+</html>

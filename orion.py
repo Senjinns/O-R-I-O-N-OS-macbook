@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """
 🌌 ORION OS — Assistant Vocal Agentique pour macOS (Apple Silicon M2)
-===================================================================
-Pipeline : Micro -> openWakeWord / RMS -> Whisper STT -> Claude 3.5 Agent -> Edge-TTS / macOS say
 """
 
 import time
 import sys
 import threading
 import numpy as np
-import sounddevice as sd
 
 from core import config, journal, registre, voix, llm, tts, budget
 from core.util import sans_accents
+import hud
 
 LOG = journal.obtenir("orion")
 
@@ -30,27 +28,30 @@ class OrionOS:
         self.agent = llm.ClaudeAgent()
         self.historique = []
         self.actif = True
-        self.en_parole = threading.Event()
-        self.interruption = threading.Event()
 
-    def demarrer_serveur_fond(self):
+    def demarrer_serveurs_fond(self):
         try:
+            # 1. Démarrage du HUD Arc Reactor sur 8770
+            hud.demarrer()
+            
+            # 2. Démarrage du Cockpit & Pont iPhone sur 8765
             from core import serveur
             t = threading.Thread(target=serveur.demarrer_serveur, daemon=True)
             t.start()
-            LOG.info("Serveur Cockpit et Pont iPhone démarrés en tâche de fond.")
+            LOG.info("Services de fond démarrés : Cockpit (8765) & HUD (8770).")
         except Exception as e:
-            LOG.warning(f"Impossible de lancer le serveur web : {e}")
+            LOG.warning(f"Erreur démarrage services : {e}")
 
     def dire(self, texte: str):
         if not texte:
             return
         LOG.info(f"Orion dit : {texte}")
-        self.en_parole.set()
+        hud.etat(hud.PAROLE)
+        hud.dire_orion(texte)
         try:
             tts.tts().synthetiser(texte)
         finally:
-            self.en_parole.clear()
+            hud.etat(hud.VEILLE)
 
     def nettoyer_transcription(self, texte: str) -> str:
         t = sans_accents(texte)
@@ -64,11 +65,11 @@ class OrionOS:
         if not requete_propre or len(requete_propre) < 2:
             return
             
-        LOG.info(f"Commande utilisateur : '{requete_propre}'")
+        LOG.info(f"Commande entendue : '{requete_propre}'")
+        hud.dire_vous(requete_propre)
+        hud.etat(hud.REFLEXION)
         
-        # Vérification d'interruption vocale simple
         if any(w in requete_propre for w in MOTS_INTERRUPTION):
-            LOG.info("Interruption détectée.")
             self.dire("Je m'arrête.")
             return
 
@@ -77,30 +78,30 @@ class OrionOS:
 
     def boucle_principale(self):
         self.audio.calibrer_bruit_ambiant()
-        self.demarrer_serveur_fond()
+        self.demarrer_serveurs_fond()
         self.dire("Système Orion opérationnel. À vos ordres.")
 
-        LOG.info("En attente de commandes vocales (Parlez naturellement)...")
-        
-        duree_suite = config.reglage("assistant.duree_ecoute_suite", 8)
-        dernier_echange = 0
+        LOG.info("En attente de commandes vocales...")
+        hud.etat(hud.VEILLE)
 
         while self.actif:
             try:
-                # Écoute continue
+                hud.etat(hud.ECOUTE)
                 audio_data = self.audio.enregistrer_commande()
                 if audio_data.size > 0:
+                    hud.etat(hud.REFLEXION)
                     transcription = self.audio.transcrire_audio(audio_data)
                     if transcription and len(transcription.strip()) > 1:
                         self.executer_requete(transcription)
-                        dernier_echange = time.time()
+                else:
+                    hud.etat(hud.VEILLE)
                 time.sleep(0.1)
             except KeyboardInterrupt:
                 LOG.info("Arrêt demandé par l'utilisateur.")
                 self.dire("Arrêt du système. À bientôt.")
                 break
             except Exception as e:
-                LOG.error(f"Erreur dans la boucle principale : {e}")
+                LOG.error(f"Erreur boucle principale : {e}")
                 time.sleep(1)
 
 def main():

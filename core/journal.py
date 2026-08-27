@@ -12,7 +12,6 @@ FICHIER_LOG = DOSSIER_LOGS / "orion.log"
 FICHIER_AUDIT = DOSSIER_LOGS / "audit_securite.jsonl"
 
 def enregistrer_audit(nom_outil: str, arguments: dict, securite: str, statut: str, resultat: str, duree_ms: float = 0.0):
-    """Écrit une entrée immuable dans le journal d'audit de sécurité."""
     entree = {
         "timestamp": datetime.datetime.now().isoformat(),
         "outil": nom_outil,
@@ -30,10 +29,8 @@ def enregistrer_audit(nom_outil: str, arguments: dict, securite: str, statut: st
 
 class FormateurCouleur(logging.Formatter):
     def format(self, record):
-        message = masquer_secrets(record.getMessage())
-        record.msg = message
-        formatter = logging.Formatter(f"[96m[ORION][0m {message}")
-        return formatter.format(record)
+        msg = masquer_secrets(record.getMessage())
+        return f"\033[96m[ORION]\033[0m {msg}"
 
 def obtenir(nom="orion") -> logging.Logger:
     logger = logging.getLogger(nom)
