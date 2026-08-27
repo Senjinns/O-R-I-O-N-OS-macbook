@@ -12,6 +12,7 @@
     --ambre: #f59e0b;
     --vert: #10b981;
     --violet: #818cf8;
+    --rouge: #ef4444;
     --texte-faible: #475569;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,20 +33,46 @@
     background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%);
     pointer-events: none;
   }
-  /* En-tête télémétrie */
   .top-bar {
     position: fixed;
     top: 24px;
     width: 90%;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 11px;
     letter-spacing: 2px;
     color: var(--texte-faible);
     text-transform: uppercase;
   }
   .badge { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
-  /* Réacteur Arc SVG */
+  
+  /* Bouton Mute Microphone */
+  .btn-mute {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: var(--cyan);
+    padding: 8px 18px;
+    border-radius: 24px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+    transition: all 0.2s ease;
+  }
+  .btn-mute:hover { transform: scale(1.05); }
+  .btn-mute.is-muted {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--rouge);
+    color: var(--rouge);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+  
   #arc-container {
     position: relative;
     width: min(65vmin, 440px);
@@ -75,7 +102,6 @@
   @keyframes spin { 100% { transform: rotate(360deg); } }
   @keyframes spin-rev { 100% { transform: rotate(-360deg); } }
   
-  /* État */
   #label-etat {
     margin-top: 24px;
     font-family: 'Orbitron', sans-serif;
@@ -86,7 +112,6 @@
     text-transform: uppercase;
   }
   
-  /* Transcription */
   #transcription-box {
     position: fixed;
     bottom: 30px;
@@ -118,6 +143,9 @@
 
 <div class="top-bar">
     <div>ORION // M2 NEURAL ENGINE</div>
+    <button class="btn-mute" id="btn-mute" onclick="basculerMute()">
+        <span id="mute-icon">🎙️</span> <span id="mute-text">MICRO ACTIF</span>
+    </button>
     <div class="badge" id="hud-modele">CLAUDE 3.5 + WHISPER</div>
 </div>
 
@@ -138,11 +166,48 @@
     const corePulse = document.getElementById("core-pulse");
     const ring3 = document.getElementById("core-ring-3");
     const transBox = document.getElementById("transcription-box");
+    const btnMute = document.getElementById("btn-mute");
+    const muteIcon = document.getElementById("mute-icon");
+    const muteText = document.getElementById("mute-text");
+
+    async function basculerMute() {
+        try {
+            const r = await fetch('/mute', {method: 'POST'});
+            const data = await r.json();
+            updateMuteUI(data.muet);
+        } catch (e) {
+            console.error("Erreur toggle mute:", e);
+        }
+    }
+
+    function updateMuteUI(isMuted) {
+        if (isMuted) {
+            btnMute.className = "btn-mute is-muted";
+            muteIcon.innerText = "🔇";
+            muteText.innerText = "MICRO COUPÉ";
+            labelEtat.innerText = "MICRO DÉSACTIVÉ";
+            labelEtat.style.color = "var(--rouge)";
+            ring3.style.borderColor = "var(--rouge)";
+            corePulse.style.background = "radial-gradient(circle, #fff 0%, var(--rouge) 70%)";
+            corePulse.style.boxShadow = "0 0 30px var(--rouge)";
+        } else {
+            btnMute.className = "btn-mute";
+            muteIcon.innerText = "🎙️";
+            muteText.innerText = "MICRO ACTIF";
+            labelEtat.innerText = "VEILLE";
+            labelEtat.style.color = "var(--cyan)";
+            ring3.style.borderColor = "var(--cyan)";
+            corePulse.style.background = "radial-gradient(circle, #fff 0%, var(--cyan) 70%)";
+            corePulse.style.boxShadow = "0 0 30px var(--cyan)";
+        }
+    }
 
     evtSource.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        
-        if (data.t === "etat") {
+        if (data.t === "muet") {
+            updateMuteUI(data.v);
+        } else if (data.t === "etat") {
+            if (btnMute.classList.contains("is-muted")) return;
             labelEtat.innerText = data.v.toUpperCase();
             if (data.v === "ecoute") {
                 labelEtat.style.color = "var(--cyan)";
@@ -157,18 +222,16 @@
                 labelEtat.style.color = "var(--texte-faible)";
                 ring3.style.borderColor = "rgba(56, 189, 248, 0.2)";
             }
-        }
-        else if (data.t === "niveau") {
+        } else if (data.t === "niveau") {
+            if (btnMute.classList.contains("is-muted")) return;
             const scale = 1 + (data.v * 1.8);
             corePulse.style.transform = `scale(${scale})`;
-        }
-        else if (data.t === "vous" || data.t === "orion" || data.t === "outil") {
+        } else if (data.t === "vous" || data.t === "orion" || data.t === "outil") {
             const div = document.createElement("div");
             div.className = `msg-ligne msg-${data.t}`;
             if (data.t === "vous") div.innerText = `VOUS > ${data.v}`;
             else if (data.t === "orion") div.innerText = `ORION > ${data.v}`;
             else if (data.t === "outil") div.innerText = `⚙️ OUTIL [${data.nom}] ${data.desc || ""}`;
-            
             transBox.appendChild(div);
             if (transBox.children.length > 5) transBox.removeChild(transBox.children[0]);
         }

@@ -2,7 +2,7 @@ from core.registre import outil
 
 @outil(
     nom="cliquer_position",
-    description="Clique à des coordonnées X, Y spécifiques sur l'écran du Mac.",
+    description="Clique à des coordonnées X, Y sur l'écran du Mac.",
     parametres={
         "type": "object",
         "properties": {
@@ -14,4 +14,12 @@ from core.registre import outil
     securite="N2"
 )
 def cliquer_position(x: int, y: int) -> str:
-    return f"Clic effectué aux coordonnées ({x}, {y})."
+    try:
+        import pyautogui
+        pyautogui.FAILSAFE = True
+        pyautogui.click(x, y)
+        return f"Clic exécuté aux coordonnées ({x}, {y})."
+    except ImportError:
+        return f"Module pyautogui manquant. Clic simulé en ({x}, {y})."
+    except Exception as e:
+        return f"Erreur de clic : {e}"

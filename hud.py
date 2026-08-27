@@ -5,7 +5,7 @@ import time
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from core import journal
+from core import journal, voix
 
 LOG = journal.obtenir("hud")
 PORT_HUD = 8770
@@ -15,14 +15,7 @@ VEILLE = "veille"
 ECOUTE = "ecoute"
 REFLEXION = "reflexion"
 PAROLE = "parole"
-
-_ETAT = {
-    "etat": VEILLE,
-    "niveau": 0.0,
-    "modele": "Claude 3.5",
-    "stt": "Whisper M2",
-    "budget": "0.00€",
-}
+MUET = "muet"
 
 _CLIENTS = set()
 _VERROU = threading.Lock()
@@ -43,7 +36,19 @@ def _diffuser(evenement):
 
 class GestionnaireHUD(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        pass  # Silencieux pour ne pas polluer les logs du terminal
+        pass
+
+    def do_POST(self):
+        if self.path == "/mute":
+            est_muet = voix.basculer_micro()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"muet": est_muet}).encode("utf-8"))
+        else:
+            self.send_response(404)
+            self.end_headers()
 
     def do_GET(self):
         if self.path == "/flux":
@@ -59,7 +64,9 @@ class GestionnaireHUD(BaseHTTPRequestHandler):
                 _CLIENTS.add(q)
                 for item in _HISTORIQUE:
                     q.put_nowait(json.dumps(item, ensure_ascii=False))
-                q.put_nowait(json.dumps({"t": "etat", "v": _ETAT["etat"]}, ensure_ascii=False))
+                etat_initial = MUET if voix.est_micro_muet() else VEILLE
+                q.put_nowait(json.dumps({"t": "etat", "v": etat_initial}, ensure_ascii=False))
+                q.put_nowait(json.dumps({"t": "muet", "v": voix.est_micro_muet()}, ensure_ascii=False))
 
             try:
                 while True:
@@ -70,7 +77,6 @@ class GestionnaireHUD(BaseHTTPRequestHandler):
                 with _VERROU:
                     _CLIENTS.discard(q)
         else:
-            # Sert la page HTML du HUD
             if FICHIER_HTML.exists():
                 contenu = FICHIER_HTML.read_bytes()
             else:
@@ -91,15 +97,12 @@ def demarrer(port=PORT_HUD):
         t.start()
         LOG.info(f"HUD Réacteur Arc actif sur http://127.0.0.1:{port}")
     except Exception as e:
-        LOG.warning(f"Impossible de lancer le serveur HUD sur le port {port} : {e}")
+        LOG.warning(f"Port HUD {port} indisponible : {e}")
 
-# API publique HUD
 def etat(nom_etat: str):
-    _ETAT["etat"] = nom_etat
     _diffuser({"t": "etat", "v": nom_etat})
 
 def niveau(val: float):
-    _ETAT["niveau"] = val
     _diffuser({"t": "niveau", "v": round(val, 3)})
 
 def dire_vous(texte: str):
@@ -116,19 +119,3 @@ def outil(nom_outil: str, desc: str = ""):
     ev = {"t": "outil", "nom": nom_outil, "desc": desc}
     _HISTORIQUE.append(ev)
     _diffuser(ev)
-
-if __name__ == "__main__":
-    demarrer()
-    print("Mode démo HUD actif sur http://127.0.0.1:8770")
-    while True:
-        etat(ECOUTE)
-        time.sleep(2)
-        dire_vous("Orion, allume la lumière du bureau")
-        etat(REFLEXION)
-        time.sleep(1.5)
-        outil("controler_lumieres_hue", "Bureau -> ON")
-        etat(PAROLE)
-        dire_orion("C'est fait, lumière du bureau allumée.")
-        time.sleep(3)
-        etat(VEILLE)
-        time.sleep(4)
