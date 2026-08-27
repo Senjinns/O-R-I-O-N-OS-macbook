@@ -1,5 +1,5 @@
 from core.registre import outil
-from core.util import executer_applescript
+from core.util import executer_applescript, echapper_applescript
 
 @outil(
     nom="creer_note_apple",
@@ -15,15 +15,18 @@ from core.util import executer_applescript
     securite="N2"
 )
 def creer_note_apple(titre: str, contenu: str) -> str:
-    corps = f"<b>{titre}</b><br><br>{contenu}"
-    script = f'''
-    tell application "Notes"
-        tell account "iCloud"
-            make new note with properties {{name:"{titre}", body:"{corps}"}}
-        end tell
-    end tell
-    '''
+    t_propre = echapper_applescript(titre)
+    c_propre = echapper_applescript(contenu)
+    corps = f"<b>{t_propre}</b><br><br>{c_propre}"
+    
+    script = (
+        'tell application "Notes"\n'
+        '  tell account "iCloud"\n'
+        f'    make new note with properties {{name:"{t_propre}", body:"{corps}"}}\n'
+        '  end tell\n'
+        'end tell'
+    )
     succes, msg = executer_applescript(script)
     if succes:
-        return f"Note '{titre}' créée dans Apple Notes."
-    return f"Note enregistrée avec message : {msg}"
+        return f"Note '{titre}' créée avec succès dans Apple Notes."
+    return f"Erreur lors de la création de la note : {msg}"

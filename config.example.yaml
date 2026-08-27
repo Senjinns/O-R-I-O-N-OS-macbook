@@ -122,7 +122,7 @@ twilio:
 
 # --- SERVEUR WEB & PONT IPHONE (SIRI) ---
 serveur:
-  hote: "0.0.0.0"
+  hote: "127.0.0.1"
   port: 8765
   cle_api_pont: "orion-secret-token" # Clé secrète pour les requêtes Raccourcis iPhone
 
