@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORION OS · Démo Live HUD Réacteur Arc</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond: #04070e;
+    --cyan: #38bdf8;
+    --ambre: #f59e0b;
+    --vert: #10b981;
+    --violet: #818cf8;
+    --texte-faible: #475569;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--fond);
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .glow-bg {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%);
+    pointer-events: none;
+  }
+  .top-bar {
+    position: fixed;
+    top: 24px;
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--texte-faible);
+    text-transform: uppercase;
+  }
+  .badge { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  
+  #arc-container {
+    position: relative;
+    width: min(55vmin, 380px);
+    height: min(55vmin, 380px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .core-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.1);
+  }
+  .ring-1 { width: 100%; height: 100%; animation: spin 20s linear infinite; border-style: dashed; }
+  .ring-2 { width: 75%; height: 75%; animation: spin-rev 12s linear infinite; border-color: rgba(56, 189, 248, 0.4); }
+  .ring-3 { width: 50%; height: 50%; border: 2px solid var(--cyan); box-shadow: 0 0 20px var(--cyan); transition: all 0.3s ease; }
+  
+  .core-pulse {
+    width: 25%;
+    height: 25%;
+    background: radial-gradient(circle, #fff 0%, var(--cyan) 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 30px var(--cyan);
+    transition: transform 0.1s ease;
+  }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  @keyframes spin-rev { 100% { transform: rotate(-360deg); } }
+  
+  #label-etat {
+    margin-top: 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    text-shadow: 0 0 12px var(--cyan);
+    text-transform: uppercase;
+  }
+  
+  /* Barre de contrôle interactive pour la démo */
+  .control-bar {
+    position: fixed;
+    top: 60px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .btn-sim {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-sim:hover {
+    background: var(--cyan);
+    color: #000;
+  }
+  
+  #transcription-box {
+    position: fixed;
+    bottom: 30px;
+    width: min(720px, 88vw);
+    max-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 10px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%);
+  }
+  .msg-ligne {
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 6px 14px;
+    border-radius: 6px;
+    animation: fadeIn 0.3s ease;
+  }
+  .msg-vous { color: var(--cyan); background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--cyan); }
+  .msg-orion { color: #f8fafc; background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--ambre); }
+  .msg-outil { color: var(--vert); font-size: 11px; background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--vert); }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="glow-bg"></div>
+
+<div class="top-bar">
+    <div>ORION // SIMULATEUR WEB GITHUB</div>
+    <div class="badge">CLAUDE 3.5 + WHISPER</div>
+</div>
+
+<div class="control-bar">
+    <button class="btn-sim" onclick="simuler('lumieres')">💡 Scénario Lumières</button>
+    <button class="btn-sim" onclick="simuler('spotify')">🎵 Scénario Spotify</button>
+    <button class="btn-sim" onclick="simuler('agenda')">📅 Scénario Agenda</button>
+    <button class="btn-sim" onclick="toggleAuto()">🔁 Mode Auto : <span id="auto-status">ON</span></button>
+</div>
+
+<div id="arc-container">
+    <div class="core-ring ring-1"></div>
+    <div class="core-ring ring-2"></div>
+    <div class="core-ring ring-3" id="core-ring-3"></div>
+    <div class="core-pulse" id="core-pulse"></div>
+</div>
+
+<div id="label-etat">VEILLE</div>
+
+<div id="transcription-box"></div>
+
+<script>
+    const labelEtat = document.getElementById("label-etat");
+    const corePulse = document.getElementById("core-pulse");
+    const ring3 = document.getElementById("core-ring-3");
+    const transBox = document.getElementById("transcription-box");
+    let autoMode = true;
+
+    function setEtat(etat, niveau = 0) {
+        labelEtat.innerText = etat.toUpperCase();
+        if (etat === "ecoute") {
+            labelEtat.style.color = "var(--cyan)";
+            ring3.style.borderColor = "var(--cyan)";
+            corePulse.style.transform = "scale(1.4)";
+        } else if (etat === "reflexion") {
+            labelEtat.style.color = "var(--violet)";
+            ring3.style.borderColor = "var(--violet)";
+            corePulse.style.transform = "scale(1.1)";
+        } else if (etat === "parole") {
+            labelEtat.style.color = "var(--ambre)";
+            ring3.style.borderColor = "var(--ambre)";
+            corePulse.style.transform = "scale(1.6)";
+        } else {
+            labelEtat.style.color = "var(--texte-faible)";
+            ring3.style.borderColor = "rgba(56, 189, 248, 0.2)";
+            corePulse.style.transform = "scale(1.0)";
+        }
+    }
+
+    function addMessage(type, texte) {
+        const div = document.createElement("div");
+        div.className = `msg-ligne msg-${type}`;
+        if (type === "vous") div.innerText = `VOUS > ${texte}`;
+        else if (type === "orion") div.innerText = `ORION > ${texte}`;
+        else if (type === "outil") div.innerText = `⚙️ OUTIL ${texte}`;
+        
+        transBox.appendChild(div);
+        if (transBox.children.length > 5) transBox.removeChild(transBox.children[0]);
+    }
+
+    const scenarios = {
+        lumieres: [
+            { t: 0, f: () => { setEtat("ecoute"); addMessage("vous", "Orion, allume les lumières du salon à 70%"); } },
+            { t: 1500, f: () => { setEtat("reflexion"); addMessage("outil", "[controler_lumieres_hue] Salon -> 70%"); } },
+            { t: 3000, f: () => { setEtat("parole"); addMessage("orion", "C'est fait, lumières du salon réglées à 70%."); } },
+            { t: 6000, f: () => setEtat("veille") }
+        ],
+        spotify: [
+            { t: 0, f: () => { setEtat("ecoute"); addMessage("vous", "Orion, mets de la musique pour travailler"); } },
+            { t: 1500, f: () => { setEtat("reflexion"); addMessage("outil", "[controler_spotify] Play -> Synthwave Focus"); } },
+            { t: 3000, f: () => { setEtat("parole"); addMessage("orion", "Lecture lancée sur Spotify. Bonne session."); } },
+            { t: 6000, f: () => setEtat("veille") }
+        ],
+        agenda: [
+            { t: 0, f: () => { setEtat("ecoute"); addMessage("vous", "Qu'est-ce qui est prévu dans mon agenda aujourd'hui ?"); } },
+            { t: 1500, f: () => { setEtat("reflexion"); addMessage("outil", "[consulter_agenda] 2 événements trouvés"); } },
+            { t: 3000, f: () => { setEtat("parole"); addMessage("orion", "Vous avez une réunion à 14h30 et votre séance de sport à 18h."); } },
+            { t: 6000, f: () => setEtat("veille") }
+        ]
+    };
+
+    function simuler(nom) {
+        autoMode = false;
+        document.getElementById("auto-status").innerText = "OFF";
+        const seq = scenarios[nom] || scenarios.lumieres;
+        seq.forEach(step => setTimeout(step.f, step.t));
+    }
+
+    function toggleAuto() {
+        autoMode = !autoMode;
+        document.getElementById("auto-status").innerText = autoMode ? "ON" : "OFF";
+    }
+
+    let cycleIndex = 0;
+    const keys = ["lumieres", "spotify", "agenda"];
+    setInterval(() => {
+        if (autoMode) {
+            simuler(keys[cycleIndex]);
+            autoMode = true;
+            document.getElementById("auto-status").innerText = "ON";
+            cycleIndex = (cycleIndex + 1) % keys.length;
+        }
+    }, 8000);
+</script>
+</body>
+</html>
