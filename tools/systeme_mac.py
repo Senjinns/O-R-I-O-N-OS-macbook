@@ -1,7 +1,13 @@
 import subprocess
-import os
 from core.registre import outil
 from core.util import executer_applescript
+
+# Liste noire des applications interdites pour éviter tout accès shell / console
+APPS_INTERDITES = {
+    "terminal", "iterm", "iterm2", "console", "disk utility", "utilitaire de disque",
+    "activity monitor", "moniteur d'activité", "script editor", "editeur de script",
+    "automator", "bash", "zsh", "sh", "sudo", "system preferences", "reglages systeme"
+}
 
 @outil(
     nom="controler_volume",
@@ -30,7 +36,7 @@ def controler_volume(niveau: int = None, muet: bool = None) -> str:
 
 @outil(
     nom="lancer_application",
-    description="Ouvre n'importe quelle application installée sur le Mac (Spotify, Chrome, VS Code, Discord, Notes, etc.).",
+    description="Ouvre une application utilisateur autorisée sur le Mac (Spotify, Chrome, VS Code, Discord, Notes, etc.).",
     parametres={
         "type": "object",
         "properties": {
@@ -41,11 +47,16 @@ def controler_volume(niveau: int = None, muet: bool = None) -> str:
     securite="N2"
 )
 def lancer_application(nom_application: str) -> str:
+    nom_nettoye = nom_application.strip().lower()
+    
+    if any(interdit in nom_nettoye for interdit in APPS_INTERDITES):
+        return f"SÉCURITÉ : Le lancement de '{nom_application}' est strictement interdit par les règles de sécurité."
+    
     try:
         cmd = ["open", "-a", nom_application]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
         if res.returncode == 0:
-            return f"Application {nom_application} lancée."
+            return f"Application {nom_application} lancée avec succès."
         return f"Impossible de trouver l'application {nom_application}."
     except Exception as e:
         return f"Erreur lors du lancement de {nom_application} : {e}"
@@ -58,14 +69,14 @@ def lancer_application(nom_application: str) -> str:
 )
 def verrouiller_mac() -> str:
     try:
-        subprocess.run(["pmset", "displaysleepnow"], check=True)
+        subprocess.run(["pmset", "displaysleepnow"], check=True, timeout=5)
         return "Écran du Mac verrouillé et mis en veille."
     except Exception as e:
         return f"Erreur de verrouillage : {e}"
 
 @outil(
     nom="eteindre_mac",
-    description="Met en veille prolongée ou éteint proprement le Mac.",
+    description="Met en veille prolongée ou éteint proprement le Mac (Sécurité N3).",
     parametres={"type": "object", "properties": {}},
     securite="N3"
 )
