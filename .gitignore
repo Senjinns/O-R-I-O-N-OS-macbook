@@ -1,0 +1,32 @@
+# Secrets & Environnement
+config.yaml
+.env
+google_credentials.json
+google_token.json
+.profil_reservation/
+
+# Logs & Données
+logs/
+data/
+*.sqlite
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Modèles locaux
+models/
+voix/*.onnx

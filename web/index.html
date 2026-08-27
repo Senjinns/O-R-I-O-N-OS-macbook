@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 ORION OS — Cockpit macOS</title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="pulse-orb"></span>
+                <h1>ORION <span>OS</span></h1>
+            </div>
+            <div class="badge-status">
+                <span class="dot live"></span> macOS M2 8GB
+            </div>
+        </header>
+
+        <main class="grid-dashboard">
+            <div class="card glass">
+                <h3>⚡ Télémétrie Système</h3>
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <span class="label">CPU M2</span>
+                        <span class="valeur" id="val-cpu">--%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">RAM Utilisée</span>
+                        <span class="valeur" id="val-ram">-- Go</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">Batterie</span>
+                        <span class="valeur" id="val-batt">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <h3>💸 Budget Anthropic Claude</h3>
+                <div class="budget-bar-container">
+                    <div class="budget-bar" id="budget-progress" style="width: 15%;"></div>
+                </div>
+                <p class="subtext" id="budget-text">Consommé : 0.00€ / 2.00€ (Jour)</p>
+            </div>
+
+            <div class="card glass full-width">
+                <h3>🧰 Boîte à Outils Active (30+ Outils)</h3>
+                <div class="tools-grid" id="tools-container">
+                    <span class="tool-tag">systeme_mac</span>
+                    <span class="tool-tag">stats_mac</span>
+                    <span class="tool-tag">ecran_vision</span>
+                    <span class="tool-tag">spotify</span>
+                    <span class="tool-tag">shazam_musique</span>
+                    <span class="tool-tag">lumieres_hue</span>
+                    <span class="tool-tag">google_agenda</span>
+                    <span class="tool-tag">gmail</span>
+                    <span class="tool-tag">twilio_appels</span>
+                    <span class="tool-tag">notes_apple</span>
+                    <span class="tool-tag">meteo</span>
+                </div>
+            </div>
+
+            <div class="card glass full-width">
+                <h3>💬 Commande Directe</h3>
+                <div class="cmd-box">
+                    <input type="text" id="cmd-input" placeholder="Poser une question ou ordonner une action...">
+                    <button id="cmd-send" onclick="envoyerCommande()">Exécuter</button>
+                </div>
+                <div class="reponse-box" id="cmd-output">En attente d'ordres...</div>
+            </div>
+        </main>
+    </div>
+    <script src="/app.js"></script>
+</body>
+</html>

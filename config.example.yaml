@@ -1,0 +1,133 @@
+# ==============================================================================
+# 🌌 ORION OS (macOS Apple Silicon Edition) - Fichier de Configuration
+# ==============================================================================
+# Copie ce fichier vers config.yaml et configure tes clés personnelles.
+
+nom_assistant: "Orion"
+langue: "fr"
+mode: "cloud"                    # cloud (Claude + Edge-TTS/macOS say) | hybride
+
+# --- CERVEAU & INTELLIGENCE ARTIFICIELLE (ANTHROPIC CLAUDE) ---
+anthropic:
+  cle: "sk-ant-..."              # Ta clé API Anthropic (console.anthropic.com)
+  modele_rapide: "claude-3-5-haiku-20241022"   # Réponses instantanées, vision & outils simples
+  modele_expert: "claude-3-5-sonnet-20241022"  # Raisonnement profond & tâches complexes
+  max_tokens: 1024
+  temperature: 0.5
+
+# --- GESTION DES BUDGETS & SÉCURITÉ ---
+budget:
+  plafond_jour_eur: 2.00         # Plafond journalier maximum (EUR)
+  plafond_mois_eur: 30.00        # Plafond mensuel maximum (EUR)
+  alerte_pourcentage: 80         # Alerte vocale dès 80% du plafond atteint
+
+# --- PARAMÈTRES AUDIO & MICROPHONE ---
+audio:
+  micro_index: null              # null = micro par défaut du Mac (ou index entier)
+  taux_echantillonnage: 16000    # 16 kHz requis pour STT & Wake Word
+  haut_parleur_index: null       # null = sortie audio active du Mac
+  gain_micro: 1.0
+
+# --- SPEECH-TO-TEXT (WHISPER) ---
+whisper:
+  modele: "small"                # tiny | base | small | medium (small recommandé pour Mac M2 8Go)
+  device: "cpu"                  # cpu (utilise Accelerate) ou mps (Metal Performance Shaders)
+  compute_type: "float32"        # float32 | int8
+  langue: "fr"
+
+# --- MOT D'ACTIVATION (WAKE WORD) & SENSIBILITÉ ---
+assistant:
+  mot_activation: "hey orion"    # Modèle openWakeWord ou fallback détection
+  seuil_reveil: 0.5              # Sensibilité de détection (0.3 facile, 0.7 strict)
+  seuil_interruption: 0.65       # Sensibilité du Barge-in (couper la parole quand tu parles)
+  auto_calibration: true         # Mesure le bruit ambiant 1s au démarrage
+  silence_fin_phrase: 1.2        # Secondes de silence pour clore une commande
+  duree_max_enregistrement: 20   # Secondes max d'écoute par commande
+  duree_ecoute_suite: 8          # Secondes d'écoute continue après réponse
+  personnalite: "orion_sarcastique" # orion_sarcastique | neutre | concis
+
+# --- TEXT-TO-SPEECH (SYNTHÈSE VOCALE) ---
+tts:
+  fournisseur: "edge-tts"        # edge-tts (gratuit, haute qualité) | macos (say natif) | elevenlabs
+  edge_tts:
+    voix: "fr-FR-HenriNeural"    # fr-FR-HenriNeural | fr-FR-DeniseNeural | fr-FR-VivienneMultilingualNeural
+    vitesse: "+5%"
+  macos:
+    voix: "Thomas"               # Thomas | Aurelie | Nicolas
+    vitesse: 190
+  elevenlabs:
+    cle: ""                      # Clé API ElevenLabs (optionnelle)
+    voix_id: ""                  # ID de voix personnalisée
+    modele: "eleven_flash_v2_5"
+
+# --- CONTRÔLE SYSTÈME MACOS ---
+systeme:
+  confirmation_n3: true          # Demande confirmation vocale pour actions critiques (extinction, etc.)
+  delai_extinction_sec: 30       # Délai d'annulation de mise en veille/extinction
+
+# --- DOMOTIQUE & IOT ---
+hue:
+  actif: false
+  pont_ip: ""                    # IP du pont Philips Hue sur le réseau local
+  cle_utilisateur: ""            # Clé API générée sur le pont
+
+google_home:
+  actif: false
+  projet_id: ""
+
+alexa:
+  actif: false
+  cookie: ""
+
+amaran:
+  actif: false
+  ip: ""
+
+# --- PRODUCTIVITÉ ---
+agenda:
+  actif: false
+  credentials_file: "google_credentials.json"
+  token_file: "google_token.json"
+
+mail:
+  actif: false
+  serveur_imap: "imap.gmail.com"
+  serveur_smtp: "smtp.gmail.com"
+  adresse: "mon.adresse@gmail.com"
+  mot_de_passe_app: ""
+
+notes:
+  dossier_markdown: "data/notes"
+
+# --- MÉDIA & STREAMING ---
+spotify:
+  actif: false
+  client_id: ""
+  client_secret: ""
+  redirect_uri: "http://localhost:8888/callback"
+
+obs:
+  actif: false
+  host: "localhost"
+  port: 4455
+  mot_de_passe: ""
+
+# --- TÉLÉPHONIE TWILIO ---
+twilio:
+  actif: false
+  account_sid: ""
+  auth_token: ""
+  numero_emetteur: ""
+  cout_par_minute: 0.12
+
+# --- SERVEUR WEB & PONT IPHONE (SIRI) ---
+serveur:
+  hote: "0.0.0.0"
+  port: 8765
+  cle_api_pont: "orion-secret-token" # Clé secrète pour les requêtes Raccourcis iPhone
+
+# --- OVERLAY HUD ---
+hud:
+  actif: true
+  largeur: 420
+  hauteur: 160
